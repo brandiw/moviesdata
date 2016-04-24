@@ -1,0 +1,293 @@
+<html>
+  <head>
+    <title>Movies Page</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" rel="stylesheet" type="text/css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="row">
+        <div class="col-xs-12">
+          <h1>Movies List</h1>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-xs-12">
+          <p id="pErrorMessage" class="text-danger"></p>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-xs-12">
+          Search the open movies database for your favorite movies. (Note: non-alphanumeric input)
+          <hr />
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-xs-2">
+          TITLE:
+        </div>
+        <div class="col-xs-6">
+          <input id="searchQuery" type="text" style="width: 100%;" />
+        </div>
+        <div class="col-xs-4">
+          <button onclick="searchClick();">Search</button>
+        </div>
+      </div>
+      <div class="row">
+        <hr />
+        <div class="col-xs-4">
+          FAVORITES
+        </div>
+        <div class="col-xs-4">
+          <p id="pFavorites"></p>
+          <ul id="ulFavorites"></ul>
+        </div>
+        <div class="col-xs-4">
+          <a href="/favorites">See the favorites JSON data &raquo;</a>
+        </div>
+      </div>
+      <div id="divResults" class="row" style="display: none;">
+        <hr />
+        <div class="col-xs-12">
+          SEARCH RESULTS
+          <p id="pQueryReminder" class="text-info"></p>
+        </div>
+        <table id="tableResults" class="table table-bordered table-condensed">
+          <thead>
+            <th>Favorite?</th>
+            <th>Poster</th>
+            <th>Title</th>
+            <th>Year</th>
+          </thead>
+          <tbody id="tableResultsBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </body>
+</html>
+<script>
+/* INITIALIZATION AND CLICK HANDLERS */
+var favorites = [];
+window.onload = initializeData();
+
+//Let's load the favorites on page load so that the user can see what they've already favorited.
+function initializeData(){
+  var url = "http://localhost:3000/favorites";
+  getDataFromAPI(url, loadFavorites);
+}
+
+//Capture search button click. Load the API results.
+function searchClick(){
+  //We can use JavaScript to grab DOM elements. In this case, let's grab the search textbox to see what the user entered, and
+  //the DOM elements we want to show results and messages with.
+  var searchText = document.getElementById('searchQuery').value;
+
+  //Let's make sure the user actually entered something in the search box.
+  if(searchText == null || searchText == undefined || searchText === ''){
+    //Uh-oh. No input. Let's show an error message, hide the results panel, and stop further execution of this function.
+    hideResults('Please enter a value in the search bar and try again.');
+    return;
+  }
+
+  searchText = sanitizeInput(searchText);
+
+  if(searchText === ''){
+    hideResults('Please enter only alphanumeric characters + spaces');
+    return;
+  }
+
+  //Vanilla JavaScript AJAX call.
+  getDataFromAPI("http://www.omdbapi.com/?s=" + searchText + "&y=&plot=short&type=movie&r=json", fillTableData);
+}
+
+//Capture favorites button click, add this to list on server side
+function favoriteClick(title, id){
+  var url = 'http://localhost:3000/favorites?name=' + title + '&oid=' + id;
+  postDataToFavorites(url, title, id);
+}
+
+function moreInfoClick(id){
+  var url = 'http://www.omdbapi.com/?i=' + id + '&plot=short&r=json';
+  getDataFromAPI(url, showMoreInfo);
+}
+/* END INITIALIZATION AND CLICK HANDLERS */
+
+/* API CALLS */
+//Make a call to the Open Movies Database or server.js.
+function getDataFromAPI(url, handleData){
+   var xmlHttp = new XMLHttpRequest();
+   xmlHttp.open("GET", url, true);
+   xmlHttp.onreadystatechange=function(){
+     if (xmlHttp.readyState==4 && xmlHttp.status==200){
+       var parsedJSON = JSON.parse(xmlHttp.responseText);
+       if(parsedJSON.Response != undefined && parsedJSON.Response == "False"){
+         hideResults('Error: ' + parsedJSON.Error);
+       }
+       else{
+         handleData(parsedJSON);
+       }
+     }
+   }
+   xmlHttp.send();
+}
+
+//Post data to the server
+function postDataToFavorites(url, title, id){
+   var xmlHttp = new XMLHttpRequest();
+   xmlHttp.open("POST", url, true);
+   xmlHttp.onreadystatechange=function(){
+     if (xmlHttp.readyState==4 && xmlHttp.status==200){
+       confirmFavorite(title, id);
+     }
+   }
+   xmlHttp.send();
+}
+/* END API CALLS */
+
+/* FAVORITES - HELPER FUNCTIONS */
+//Give user feedback showing that adding their favorite worked.
+function confirmFavorite(title, id){
+  //Give the user a response so they know that it worked
+  alert(title + ' has been added to your favorite movies!');
+
+  //add to bullet list of favorite movies
+  var pFavorites = document.getElementById('pFavorites');
+  var ulFavorites = document.getElementById('ulFavorites');
+
+  pFavorites.innerHTML = 'Some of my very favorite movies include:';
+  ulFavorites.insertAdjacentHTML('beforeend', '<li>' + title + '</li>');
+
+  //change the image to a heart - we'll do an in-place replacement
+  var clickedButton = document.getElementById(id);
+  var imgHeart = document.createElement("img");
+  imgHeart.src = "heart.png";
+  imgHeart.style.width = "80px";
+  imgHeart.style.height = "auto";
+  clickedButton.parentNode.replaceChild(imgHeart, clickedButton);
+}
+
+//Parses results that fetched the favorites list
+function loadFavorites(favoritesJson){
+  var pFavorites = document.getElementById('pFavorites');
+  var ulFavorites = document.getElementById('ulFavorites');
+
+  if(favoritesJson != null && favoritesJson != undefined && favoritesJson.length > 0){
+    var favoritesList = '';
+
+    for(var i = 0; i < favoritesJson.length; i++){
+      favorites.push({name: favoritesJson[i].name, id: favoritesJson[i].oid});
+      favoritesList += '<li>' + favoritesJson[i].name + '</li>'
+    }
+
+    pFavorites.innerHTML = 'Some of my very favorite movies include:';
+    ulFavorites.insertAdjacentHTML('beforeend', favoritesList);
+  }
+  else{
+    pFavorites.innerHTML = "I haven't chosen any favorite movies yet!";
+    favorites = [];
+  }
+}
+
+//Check by title whether the movie has been favorited.
+function isFavorite(title){
+  for(var i = 0; i < favorites.length; i++){
+    if(favorites[i].name === title){
+      return true;
+    }
+  }
+  return false;
+}
+/* END FAVORITES - HELPER FUNCTIONS */
+
+/* DATA HANDLING AND DISPLAY FUNCTIONS */
+//Fill the search results table with the data we want to display.
+function fillTableData(jsonMovieInfo){
+  //We can use JavaScript to grab DOM elements. In this case, let's grab the empty table and load it with search results.
+  var tableBody = document.getElementById('tableResultsBody');
+
+  //Append the data to the table.
+  if(jsonMovieInfo != null && jsonMovieInfo.Search.length > 0){
+    var tableFormat = '';
+
+    for(var i = 0; i < jsonMovieInfo.Search.length; i++){
+      tableFormat += '<tr><td>' + getFavoriteButton(jsonMovieInfo.Search[i].Title, jsonMovieInfo.Search[i].imdbID) +
+        '</td><td>' + getPoster(jsonMovieInfo.Search[i].Poster) + '</td><td><table><tr><td>' +
+        jsonMovieInfo.Search[i].Title + '</td></tr><tr><td id="moreInfo' + jsonMovieInfo.Search[i].imdbID + '"><button class="btn btn-info" onclick="moreInfoClick(\'' +
+        jsonMovieInfo.Search[i].imdbID + '\')">Get More Info</button></td></tr></table><td>' +
+        jsonMovieInfo.Search[i].Year + '</td></tr>';
+    }
+
+    tableBody.innerHTML = tableFormat;
+    showResults();
+  }
+  else{
+    //Looks like we didn't get any results. Let's give the user an error message and hide th results table.
+    hideResults("Looks like we didn't get any results back from the database.");
+  }
+}
+
+//This is for when an error has occured; we'll hide the results table and display some error message.
+function hideResults(errorMessage){
+  var divResults = document.getElementById('divResults');
+  var pErrorMessage = document.getElementById('pErrorMessage');
+
+  divResults.style.display = "none";
+  pErrorMessage.innerHTML = (errorMessage == undefined ? 'Please enter a value in the search bar and try again.' : errorMessage);
+}
+
+//Display the data we have
+function showResults(searchText){
+  var divResults = document.getElementById('divResults');
+  var pErrorMessage = document.getElementById('pErrorMessage');
+  var pQueryReminder = document.getElementById('pQueryReminder');
+  var searchQuery = document.getElementById('searchQuery');
+
+  divResults.style.display = "inline";
+  pErrorMessage.innerHTML = '';
+  pQueryReminder.innerHTML = 'You searched the open movie database for "' + searchText + '"';
+  searchQuery.value = '';
+}
+
+function showMoreInfo(singleMovieInfo){
+  if(singleMovieInfo != undefined && singleMovieInfo != null){
+    var displayText = "<div><strong>Runtime:</strong> " + singleMovieInfo.Runtime + "</div>";
+    displayText += "<div><strong>Rating:</strong> " + singleMovieInfo.Rated + "</div>";
+    displayText += "<div><strong>Genre:</strong> " + singleMovieInfo.Genre + "</div>";
+    displayText += "<div><strong>Director:</strong> " + singleMovieInfo.Director + "</div>";
+    displayText += "<div><strong>Actors:</strong> " + singleMovieInfo.Actors + "</div>";
+    displayText += "<div><strong>Plot Summary:</strong> " + singleMovieInfo.Plot + "</div>";
+
+    var tdMoreInfo = document.getElementById("moreInfo" + singleMovieInfo.imdbID);
+    tdMoreInfo.insertAdjacentHTML('beforeend', displayText);
+  }
+  else{
+    hideResults('Looks like no data was returned for the detailed movie info.')
+  }
+}
+
+//Get the HTML for the button - either an image if they've already favorited it, or a button to favorite it if they wish.
+function getFavoriteButton(title, id){
+  if(isFavorite(title)){
+    return '<img src="heart.png" style="width:80px; height:auto;" />';
+  }
+  else{
+    return '<button id="' + id + '" class="btn btn-info" onclick="favoriteClick(\'' + title + '\', \'' + id + '\')">Make Favorite</button>';
+  }
+}
+
+//Don't try to display an image if the source given is 'n/a'
+function getPoster(src){
+  if(src == 'N/A'){
+    return 'No poster available'
+  }
+  else{
+    return '<img src="' + src + '" alt="promo" style="width: 80px; height: auto;" />';
+  }
+}
+
+//Only allow the user to give alphanumeric and spaces in the search bar.
+function sanitizeInput(searchText){
+  console.log(searchText.replace(/[^0-9a-zA-Z\s]/g, ''));
+  return searchText.replace(/[^0-9a-zA-Z\s]/g, '');
+}
+/* END DATA HANDLING AND DISPLAY FUNCTIONS */
+</script>
