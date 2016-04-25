@@ -71,7 +71,7 @@ window.onload = initializeData();
 
 //Let's load the favorites on page load so that the user can see what they've already favorited.
 function initializeData(){
-  var url = "http://localhost:3000/favorites";
+  var url = "/favorites";
   getDataFromAPI(url, loadFavorites);
 }
 
@@ -101,7 +101,7 @@ function searchClick(){
 
 //Capture favorites button click, add this to list on server side
 function favoriteClick(title, id){
-  var url = 'http://localhost:3000/favorites?name=' + title + '&oid=' + id;
+  var url = '/favorites?name=' + title + '&oid=' + id;
   postDataToFavorites(url, title, id);
 }
 
