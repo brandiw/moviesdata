@@ -96,7 +96,7 @@ function searchClick(){
   }
 
   //Vanilla JavaScript AJAX call.
-  getDataFromAPI("http://www.omdbapi.com/?s=" + searchText + "&y=&plot=short&type=movie&r=json", fillTableData);
+  getDataFromAPI("https://www.omdbapi.com/?s=" + searchText + "&y=&plot=short&type=movie&r=json", fillTableData);
 }
 
 //Capture favorites button click, add this to list on server side
@@ -106,7 +106,7 @@ function favoriteClick(title, id){
 }
 
 function moreInfoClick(id){
-  var url = 'http://www.omdbapi.com/?i=' + id + '&plot=short&r=json';
+  var url = 'https://www.omdbapi.com/?i=' + id + '&plot=short&r=json';
   getDataFromAPI(url, showMoreInfo);
 }
 /* END INITIALIZATION AND CLICK HANDLERS */
