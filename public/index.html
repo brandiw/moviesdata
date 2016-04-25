@@ -280,13 +280,12 @@ function getPoster(src){
     return 'No poster available'
   }
   else{
-    return '<img src="' + src.substring(5) + '" alt="promo" style="width: 80px; height: auto;" />';
+    return '<img src="' + src + '" alt="promo" style="width: 80px; height: auto;" />';
   }
 }
 
 //Only allow the user to give alphanumeric and spaces in the search bar.
 function sanitizeInput(searchText){
-  console.log(searchText.replace(/[^0-9a-zA-Z\s]/g, ''));
   return searchText.replace(/[^0-9a-zA-Z\s]/g, '');
 }
 /* END DATA HANDLING AND DISPLAY FUNCTIONS */
