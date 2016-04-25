@@ -31,6 +31,8 @@ app.post('/favorites', function(req, res){
   res.send(data);
 });
 
+app.set('port', (process.env.PORT || 3000));
+
 //The function is app.listen, not app.list. You may have confused this for AngularJS.
 app.listen(3000, function(){
   console.log("Listening on port 3000");
