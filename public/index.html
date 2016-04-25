@@ -280,7 +280,7 @@ function getPoster(src){
     return 'No poster available'
   }
   else{
-    return '<img src="' + src + '" alt="promo" style="width: 80px; height: auto;" />';
+    return '<img src="' + src.substring(5) + '" alt="promo" style="width: 80px; height: auto;" />';
   }
 }
 
